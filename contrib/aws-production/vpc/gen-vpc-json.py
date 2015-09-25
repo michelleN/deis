@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import json
 import os
+import subprocess
 
 CURR_DIR = os.path.dirname(os.path.realpath(__file__))
 
@@ -11,8 +12,40 @@ include_private_subnets = include_private_subnets in [ 'true', 'TRUE', 'True', '
 
 if include_private_subnets:
     # Get mappings from separate files
-    template['Mappings']['NatAMIs'] = json.load(open(os.path.join(CURR_DIR, 'nat-amis.json'), 'r'))
-    template['Mappings']['BastionAMIs'] = json.load(open(os.path.join(CURR_DIR, 'bastion-amis.json'), 'r'))
+    regions = ['us-west-2', 'us-east-1', 'eu-west-1']
+    nat = {}
+    bastion = {}
+    for region in regions:
+        # NAT
+        cmd = """aws ec2 describe-images \
+                --profile %s \
+                --region %s \
+                --owners amazon \
+                --filters 'Name=architecture,Values=x86_64' \
+                          'Name=block-device-mapping.volume-type,Values=gp2' \
+                          'Name=virtualization-type,Values=hvm' \
+                          'Name=name,Values=amzn-ami-vpc-nat-hvm-*' \
+                --query 'reverse(sort_by(Images, &CreationDate))[0].ImageId'""" % (os.getenv('AWS_DEFAULT_PROFILE', 'default'), region)
+
+        image, err = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).communicate()
+        nat[region] = {"HVM": image.strip("\"\n")}
+
+        # Bastion
+        cmd = """aws ec2 describe-images \
+                --profile %s \
+                --region %s \
+                --owners 099720109477 \
+                --filters 'Name=architecture,Values=x86_64' \
+                          'Name=block-device-mapping.volume-type,Values=gp2' \
+                          'Name=virtualization-type,Values=hvm' \
+                          'Name=name,Values=ubuntu/images/hvm-ssd/ubuntu-trusty-14.04-amd64-server-*' \
+                --query 'reverse(sort_by(Images, &CreationDate))[0].ImageId'""" % (os.getenv('AWS_DEFAULT_PROFILE', 'default'), region)
+
+        image, err = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).communicate()
+        bastion[region] = {"HVM": image.strip("\"\n")}
+
+    template['Mappings']['NatAMIs'] = nat
+    template['Mappings']['BastionAMIs'] = bastion
 else:
     # Skip anything related to the more robust network setup
     del template['Parameters']['KeyPair']

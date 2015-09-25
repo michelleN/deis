@@ -33,11 +33,13 @@ if [ -f vpc.parameters.json ]; then
     --template-body "$($THIS_DIR/gen-vpc-json.py)" \
     --stack-name $STACK_NAME \
     --parameters "$(<$THIS_DIR/vpc.parameters.json)" \
+    --stack-policy-body $THIS_DIR/stack_policy.json \
     $EXTRA_AWS_CLI_ARGS
 else
   aws cloudformation update-stack \
     --template-body "$($THIS_DIR/gen-vpc-json.py)" \
     --stack-name $STACK_NAME \
+    --stack-policy-body "$(<$THIS_DIR/stack_policy.json)" \
     $EXTRA_AWS_CLI_ARGS
 fi
 
