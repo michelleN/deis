@@ -2,15 +2,17 @@
 import json
 import os
 import subprocess
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--include-private-subnets', dest='include_private_subnets', required=False, default=os.getenv('INCLUDE_PRIVATE_SUBNETS', True), action='store_true')
+args = vars(parser.parse_args())
 
 CURR_DIR = os.path.dirname(os.path.realpath(__file__))
 
 template = json.load(open(os.path.join(CURR_DIR, 'vpc.template.json'), 'r'))
 
-include_private_subnets = os.getenv('INCLUDE_PRIVATE_SUBNETS', 'true')
-include_private_subnets = include_private_subnets in [ 'true', 'TRUE', 'True', '1', 'yes' ]
-
-if include_private_subnets:
+if args['include_private_subnets']:
     # Get mappings from separate files
     regions = ['us-west-2', 'us-east-1', 'eu-west-1']
     nat = {}
