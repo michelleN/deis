@@ -27,6 +27,12 @@ if [ ! -z "$AWS_CLI_PROFILE" ]; then
   EXTRA_AWS_CLI_ARGS+="--profile $AWS_CLI_PROFILE"
 fi
 
+# Figure out if there is a cluster param file
+if [ ! -f $THIS_DIR/vpc.parameters.json ]; then
+    echo_red "Can not locate cluster.parameters.json"
+    exit 1
+fi
+
 # Prepare bailout function to prevent us polluting the namespace
 bailout() {
   aws cloudformation delete-stack --stack-name $STACK_NAME
