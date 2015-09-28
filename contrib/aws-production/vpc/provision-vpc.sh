@@ -33,6 +33,21 @@ if [ ! -f $THIS_DIR/vpc.parameters.json ]; then
     exit 1
 fi
 
+# Check if SSH is available using a nasty little python hack
+sshkey=$(python -c 'import sys, json; data = json.load(open("vpc.parameters.json")); sshkey = [row for row in data if "KeyPair" in row.values()]; print sshkey[0]["ParameterValue"]')
+if [ -z $sshkey ]; then
+    echo_red "Could not locate a SSH Key Pair in the parameters file"
+    echo_red "Follow the SSH Key Pair instructions at http://docs.deis.io/en/latest/installing_deis/aws/"
+    exit 1
+else
+    fingerprint=$(aws ec2 describe-key-pairs --query "KeyPairs[?KeyName=='$sshkey'].[KeyFingerprint]" --output text)
+    if [ -z $fingerprint ]; then
+       echo_red "SSH Key Pair $sshkey does not exist in AWS yet. Did you forgot to import it?"
+       echo_red "Follow the SSH Key Pair instructions at http://docs.deis.io/en/latest/installing_deis/aws/"
+       exit 1
+    fi
+fi
+
 # Prepare bailout function to prevent us polluting the namespace
 bailout() {
   aws cloudformation delete-stack --stack-name $STACK_NAME
