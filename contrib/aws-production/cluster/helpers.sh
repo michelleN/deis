@@ -26,7 +26,7 @@ get_elb_info() {
         --output=text \
         $EXTRA_AWS_CLI_ARGS
     )
-    echo_green "\nUsing ELB $ELB_NAME at $ELB_DNS_NAME\n\n"
+    echo_green "\nUsing ELB $ELB_NAME at $ELB_DNS_NAME\n"
 }
 
 get_first_instance() {

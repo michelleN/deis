@@ -1,0 +1,56 @@
+{
+    "PlaneAutoScale": {
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "Properties": {
+        "AvailabilityZones": [
+          { "Fn::GetAtt" : [ "Subnet1", "AvailabilityZone" ] },
+          { "Fn::GetAtt" : [ "Subnet2", "AvailabilityZone" ] },
+          { "Fn::GetAtt" : [ "Subnet3", "AvailabilityZone" ] }
+        ],
+        "VPCZoneIdentifier": [
+          { "Ref" : "Subnet1" },
+          { "Ref" : "Subnet2" },
+          { "Ref" : "Subnet3" }
+        ],
+        "LaunchConfigurationName": {"Ref": "PlaneLaunchConfig"},
+        "MinSize": {"Ref": "PlaneSize"},
+        "MaxSize": "",
+        "DesiredCapacity": {"Ref": "PlaneSize"},
+        "Tags": [
+            {"Key": "Name", "Value": "deis-plane-node", "PropagateAtLaunch": true}
+        ]
+      }
+    },
+    "PlaneLaunchConfig": {
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
+      "Properties": {
+        "ImageId" : { "Fn::FindInMap" : [ "CoreOSAMIs", { "Ref" : "AWS::Region" }, { "Ref" : "EC2VirtualizationType" }]},
+        "InstanceType": {"Ref": "InstanceType"},
+        "IamInstanceProfile" : {
+          "Fn::If" : [
+            "UseIamInstanceProfile",
+            { "Ref" : "IamInstanceProfile" },
+            { "Ref" : "AWS::NoValue" }
+          ]
+        },
+        "KeyName": {"Ref": "KeyPair"},
+        "UserData" : { "Fn::Base64": { "Fn::Join": [ "", [ ] ] } },
+        "AssociatePublicIpAddress": {"Ref": "AssociatePublicIP"},
+        "SecurityGroups": [ { "Fn::GetAtt": ["CoreOSSecurityGroup", "GroupId"] } ],
+        "BlockDeviceMappings" : [
+          {
+            "DeviceName" : { "Fn::FindInMap": [ "RootDevices", { "Ref": "EC2VirtualizationType" }, "Name" ] },
+            "Ebs" : { "VolumeSize" : { "Ref": "RootVolumeSize" }, "VolumeType": { "Ref": "EC2EBSVolumeType" } }
+          },
+          {
+            "DeviceName" : "/dev/xvdf",
+            "Ebs" : { "VolumeSize" : { "Ref": "DockerVolumeSize" }, "VolumeType": { "Ref": "EC2EBSVolumeType" } }
+          },
+          {
+            "DeviceName" : "/dev/xvdg",
+            "Ebs" : { "VolumeSize" : { "Ref": "EtcdVolumeSize" }, "VolumeType": { "Ref": "EC2EBSVolumeType" } }
+          }
+        ]
+      }
+    }
+}

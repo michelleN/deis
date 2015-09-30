@@ -10,20 +10,6 @@
       "AllowedPattern" : "[-_ a-zA-Z0-9]*",
       "ConstraintDescription" : "can contain only alphanumeric characters, spaces, dashes and underscores."
     },
-    "ControlPlaneSize": {
-      "Default": "3",
-      "MinValue": "3",
-      "MaxValue": "9",
-      "Description": "Number of nodes in the cluster (3-9).",
-      "Type": "Number"
-    },
-    "DataPlaneSize": {
-      "Default": "3",
-      "MinValue": "0",
-      "MaxValue": "25",
-      "Description": "Number of nodes in the cluster (0-25).",
-      "Type": "Number"
-    },
     "IamInstanceProfile" : {
       "Description" : "(Optional) Set IAM instance profile for Deis hosts (default: none)",
       "Type" : "String",
@@ -162,117 +148,6 @@
   },
 
   "Resources" : {
-    "ControlPlaneAutoScale": {
-      "Type": "AWS::AutoScaling::AutoScalingGroup",
-      "Properties": {
-        "AvailabilityZones": [
-          { "Fn::GetAtt" : [ "Subnet1", "AvailabilityZone" ] },
-          { "Fn::GetAtt" : [ "Subnet2", "AvailabilityZone" ] },
-          { "Fn::GetAtt" : [ "Subnet3", "AvailabilityZone" ] }
-        ],
-        "VPCZoneIdentifier": [
-          { "Ref" : "Subnet1" },
-          { "Ref" : "Subnet2" },
-          { "Ref" : "Subnet3" }
-        ],
-        "LaunchConfigurationName": {"Ref": "ControlPlaneLaunchConfig"},
-        "MinSize": "3",
-        "MaxSize": "25",
-        "DesiredCapacity": {"Ref": "ControlPlaneSize"},
-        "Tags": [
-            {"Key": "Name", "Value": "deis-control-plane-node", "PropagateAtLaunch": true}
-        ],
-        "LoadBalancerNames": [
-          { "Ref": "DeisWebELB" }
-        ]
-      }
-    },
-    "ControlPlaneLaunchConfig": {
-      "Type": "AWS::AutoScaling::LaunchConfiguration",
-      "Properties": {
-        "ImageId" : { "Fn::FindInMap" : [ "CoreOSAMIs", { "Ref" : "AWS::Region" }, { "Ref" : "EC2VirtualizationType" }]},
-        "InstanceType": {"Ref": "InstanceType"},
-        "IamInstanceProfile" : {
-          "Fn::If" : [
-            "UseIamInstanceProfile",
-            { "Ref" : "IamInstanceProfile" },
-            { "Ref" : "AWS::NoValue" }
-          ]
-        },
-        "KeyName": {"Ref": "KeyPair"},
-        "UserData" : { "Fn::Base64": { "Fn::Join": [ "", [ ] ] } },
-        "AssociatePublicIpAddress": {"Ref": "AssociatePublicIP"},
-        "SecurityGroups": [ { "Fn::GetAtt": ["CoreOSSecurityGroup", "GroupId"] } ],
-        "BlockDeviceMappings" : [
-          {
-            "DeviceName" : { "Fn::FindInMap": [ "RootDevices", { "Ref": "EC2VirtualizationType" }, "Name" ] },
-            "Ebs" : { "VolumeSize" : { "Ref": "RootVolumeSize" }, "VolumeType": { "Ref": "EC2EBSVolumeType" } }
-          },
-          {
-            "DeviceName" : "/dev/xvdf",
-            "Ebs" : { "VolumeSize" : { "Ref": "DockerVolumeSize" }, "VolumeType": { "Ref": "EC2EBSVolumeType" } }
-          },
-          {
-            "DeviceName" : "/dev/xvdg",
-            "Ebs" : { "VolumeSize" : { "Ref": "EtcdVolumeSize" }, "VolumeType": { "Ref": "EC2EBSVolumeType" } }
-          }
-        ]
-      }
-    },
-    "DataPlaneAutoScale": {
-      "Type": "AWS::AutoScaling::AutoScalingGroup",
-      "Properties": {
-        "AvailabilityZones": [
-          { "Fn::GetAtt" : [ "Subnet1", "AvailabilityZone" ] },
-          { "Fn::GetAtt" : [ "Subnet2", "AvailabilityZone" ] },
-          { "Fn::GetAtt" : [ "Subnet3", "AvailabilityZone" ] }
-        ],
-        "VPCZoneIdentifier": [
-          { "Ref" : "Subnet1" },
-          { "Ref" : "Subnet2" },
-          { "Ref" : "Subnet3" }
-        ],
-        "LaunchConfigurationName": {"Ref": "DataPlaneLaunchConfig"},
-        "MinSize": "3",
-        "MaxSize": "25",
-        "DesiredCapacity": {"Ref": "DataPlaneSize"},
-        "Tags": [
-            {"Key": "Name", "Value": "deis-data-plane-node", "PropagateAtLaunch": true}
-        ]
-      }
-    },
-    "DataPlaneLaunchConfig": {
-      "Type": "AWS::AutoScaling::LaunchConfiguration",
-      "Properties": {
-        "ImageId" : { "Fn::FindInMap" : [ "CoreOSAMIs", { "Ref" : "AWS::Region" }, { "Ref" : "EC2VirtualizationType" }]},
-        "InstanceType": {"Ref": "InstanceType"},
-        "IamInstanceProfile" : {
-          "Fn::If" : [
-            "UseIamInstanceProfile",
-            { "Ref" : "IamInstanceProfile" },
-            { "Ref" : "AWS::NoValue" }
-          ]
-        },
-        "KeyName": {"Ref": "KeyPair"},
-        "UserData" : { "Fn::Base64": { "Fn::Join": [ "", [ ] ] } },
-        "AssociatePublicIpAddress": {"Ref": "AssociatePublicIP"},
-        "SecurityGroups": [ { "Fn::GetAtt": ["CoreOSSecurityGroup", "GroupId"] } ],
-        "BlockDeviceMappings" : [
-          {
-            "DeviceName" : { "Fn::FindInMap": [ "RootDevices", { "Ref": "EC2VirtualizationType" }, "Name" ] },
-            "Ebs" : { "VolumeSize" : { "Ref": "RootVolumeSize" }, "VolumeType": { "Ref": "EC2EBSVolumeType" } }
-          },
-          {
-            "DeviceName" : "/dev/xvdf",
-            "Ebs" : { "VolumeSize" : { "Ref": "DockerVolumeSize" }, "VolumeType": { "Ref": "EC2EBSVolumeType" } }
-          },
-          {
-            "DeviceName" : "/dev/xvdg",
-            "Ebs" : { "VolumeSize" : { "Ref": "EtcdVolumeSize" }, "VolumeType": { "Ref": "EC2EBSVolumeType" } }
-          }
-        ]
-      }
-    },
     "DeisWebELB": {
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
       "Properties": {
@@ -280,7 +155,7 @@
         "HealthCheck": {
           "HealthyThreshold": "4",
           "Interval": "15",
-          "Target": "TCP:80",
+          "Target": "HTTP:9090/health-check",
           "Timeout": "5",
           "UnhealthyThreshold": "2"
         },
@@ -349,7 +224,8 @@
           {"IpProtocol": "tcp", "FromPort": "22", "ToPort": "22", "SourceSecurityGroupId": { "Ref": "BastionSecurityGroupID" } },
           {"IpProtocol": "tcp", "FromPort": "80", "ToPort": "80", "SourceSecurityGroupId": { "Ref": "DeisWebELBSecurityGroup" } },
           {"IpProtocol": "tcp", "FromPort": "443", "ToPort": "443", "SourceSecurityGroupId": { "Ref": "DeisWebELBSecurityGroup" } },
-          {"IpProtocol": "tcp", "FromPort": "2222", "ToPort": "2222", "SourceSecurityGroupId": { "Ref": "DeisWebELBSecurityGroup" } }
+          {"IpProtocol": "tcp", "FromPort": "2222", "ToPort": "2222", "SourceSecurityGroupId": { "Ref": "DeisWebELBSecurityGroup" } },
+          {"IpProtocol": "tcp", "FromPort": "9090", "ToPort": "9090", "SourceSecurityGroupId": { "Ref": "DeisWebELBSecurityGroup" } }
         ],
         "VpcId" : { "Ref" : "VPC" }
       }
