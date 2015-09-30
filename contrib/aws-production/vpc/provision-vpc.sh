@@ -2,73 +2,56 @@
 #
 # Usage: ./provision-vpc.sh [name]
 # The [name] is the CloudFormation stack name, and defaults to 'deis-vpc'
+# the [cf-template] the path to a pre-generated CF template, defaults to making one
 
-if [ -z "$1" ]
-  then
+set -e
+
+THIS_DIR=$(cd $(dirname $0); pwd) # absolute path
+PARENT_DIR=$(dirname $THIS_DIR)
+CONTRIB_DIR=$(dirname $PARENT_DIR)
+
+source $CONTRIB_DIR/utils.sh
+source $PARENT_DIR/helpers.sh
+
+# check for AWS API tools in $PATH
+check_aws
+
+# Figure out if there is a cluster param file
+PARAMETERS_FILE=$THIS_DIR/vpc.parameters.json
+if [ ! -f $PARAMETERS_FILE ]; then
+    echo_red "Can not locate $(basename $PARAMETERS_FILE)"
+    exit 1
+fi
+
+# Check if SSH is available using a nasty little python hack
+check_sshkey $PARAMETERS_FILE
+
+if [ -z "$1" ]; then
     STACK_NAME=deis-vpc
   else
     STACK_NAME=$1
 fi
 
-set -e
-
-THIS_DIR=$(cd $(dirname $0); pwd) # absolute path
-CONTRIB_DIR=$(dirname $(dirname $THIS_DIR))
-
-source $CONTRIB_DIR/utils.sh
-
-# check for AWS API tools in $PATH
-if ! which aws > /dev/null; then
-  echo_red 'Please install the AWS command-line tool and ensure it is in your $PATH.'
-  exit 1
-fi
-
-if [ ! -z "$AWS_CLI_PROFILE" ]; then
-  EXTRA_AWS_CLI_ARGS+="--profile $AWS_CLI_PROFILE"
-fi
-
-# Figure out if there is a cluster param file
-if [ ! -f $THIS_DIR/vpc.parameters.json ]; then
-    echo_red "Can not locate cluster.parameters.json"
-    exit 1
-fi
-
-# Check if SSH is available using a nasty little python hack
-sshkey=$(python -c 'import sys, json; data = json.load(open("vpc.parameters.json")); sshkey = [row for row in data if "KeyPair" in row.values()]; print sshkey[0]["ParameterValue"]')
-if [ -z $sshkey ]; then
-    echo_red "Could not locate a SSH Key Pair in the parameters file"
-    echo_red "Follow the SSH Key Pair instructions at http://docs.deis.io/en/latest/installing_deis/aws/"
-    exit 1
+if [ -z "$2" ]; then
+    TMPFILE=$(mktemp /tmp/deis.$STACK_NAME.XXXXXXXXXX)
+    # TODO: Cleanup tmpfile on success
+    $THIS_DIR/generate-template.py > $TMPFILE
+    TEMPLATE=$TMPFILE
+    echo_green "generated template can be found at ${TEMPLATE}"
 else
-    fingerprint=$(aws ec2 describe-key-pairs --query "KeyPairs[?KeyName=='$sshkey'].[KeyFingerprint]" --output text)
-    if [ -z $fingerprint ]; then
-       echo_red "SSH Key Pair $sshkey does not exist in AWS yet. Did you forgot to import it?"
-       echo_red "Follow the SSH Key Pair instructions at http://docs.deis.io/en/latest/installing_deis/aws/"
-       exit 1
-    fi
+    TEMPLATE=$2
 fi
-
-# Prepare bailout function to prevent us polluting the namespace
-bailout() {
-  aws cloudformation delete-stack --stack-name $STACK_NAME
-}
 
 # Create an AWS cloudformation stack based on the a generated template
-if [ -f vpc.parameters.json ]; then
-  aws cloudformation create-stack \
-    --template-body "$($THIS_DIR/gen-vpc-json.py)" \
-    --stack-name $STACK_NAME \
-    --parameters "$(<$THIS_DIR/vpc.parameters.json)" \
-    --stack-policy-body "$(<$THIS_DIR/stack_policy.json)" \
-    $EXTRA_AWS_CLI_ARGS
-else
-  # TODO: This doesn't work right now, requires parameters (keypair)
-  aws cloudformation create-stack \
-    --template-body "$($THIS_DIR/gen-vpc-json.py)" \
-    --stack-policy-body "$(<$THIS_DIR/stack_policy.json)" \
-    --stack-name $STACK_NAME \
-    $EXTRA_AWS_CLI_ARGS
-fi
+echo_green "Starting CloudFormation Stack creation"
+template_source $TEMPLATE
+aws cloudformation create-stack \
+  $TEMPLATE_SOURCING \
+  --stack-name $STACK_NAME \
+  --parameters "$(<$PARAMETERS_FILE)" \
+  --stack-policy-body "$(<$THIS_DIR/stack_policy.json)" \
+  $EXTRA_AWS_CLI_ARGS
+
 
 # Loop until stack creation is complete
 ATTEMPTS=60
@@ -79,18 +62,18 @@ until [ "$STACK_STATUS" = "CREATE_COMPLETE" ]; do
   if [ $COUNTER -gt $ATTEMPTS ]; then
     echo "Provisioning failed"
     echo "Destroying stack $STACK_NAME"
-    bailout
+    bailout $STACK_NAME
     exit 1
   fi
 
-  STACK_STATUS=$(aws --output text cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[].StackStatus' $EXTRA_AWS_CLI_ARGS)
+  STACK_STATUS=$(get_stack_status $STACK_NAME)
   if [ $STACK_STATUS != "CREATE_IN_PROGRESS" -a $STACK_STATUS != "CREATE_COMPLETE" ] ; then
     echo "error creating stack: "
     aws --output text cloudformation describe-stack-events \
-      --stack-name $STACK_NAME \
-      --query 'StackEvents[?ResourceStatus==`CREATE_FAILED`].[LogicalResourceId,ResourceStatusReason]' \
-      $EXTRA_AWS_CLI_ARGS
-    bailout
+        --stack-name $STACK_NAME \
+        --query 'StackEvents[?ResourceStatus==`CREATE_FAILED`].[LogicalResourceId,ResourceStatusReason]' \
+        $EXTRA_AWS_CLI_ARGS
+    bailout $STACK_NAME
     exit 1
   fi
 
@@ -102,4 +85,6 @@ done
 
 echo_green "\nYour Deis VPC was deployed to AWS CloudFormation as stack "$STACK_NAME".\n"
 
-aws --output text cloudformation describe-stacks --stack-name $STACK_NAME
+aws --output text cloudformation describe-stacks --stack-name $STACK_NAME $EXTRA_AWS_CLI_ARGS
+
+echo_green "\nGrab the Bastion Instance ID and export it to BASTION_ID for the next step"

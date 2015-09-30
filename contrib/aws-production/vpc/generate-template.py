@@ -27,7 +27,7 @@ if args['include_private_subnets']:
                           'Name=block-device-mapping.volume-type,Values=gp2' \
                           'Name=virtualization-type,Values=hvm' \
                           'Name=name,Values=amzn-ami-vpc-nat-hvm-*' \
-                --query 'reverse(sort_by(Images, &CreationDate))[0].ImageId'""" % (os.getenv('AWS_DEFAULT_PROFILE', 'default'), region)
+                --query 'reverse(sort_by(Images, &CreationDate))[0].ImageId'""" % (os.getenv('AWS_CLI_PROFILE', 'default'), region)
 
         image, err = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).communicate()
         nat[region] = {"HVM": image.strip("\"\n")}
@@ -41,7 +41,7 @@ if args['include_private_subnets']:
                           'Name=block-device-mapping.volume-type,Values=gp2' \
                           'Name=virtualization-type,Values=hvm' \
                           'Name=name,Values=ubuntu/images/hvm-ssd/ubuntu-trusty-14.04-amd64-server-*' \
-                --query 'reverse(sort_by(Images, &CreationDate))[0].ImageId'""" % (os.getenv('AWS_DEFAULT_PROFILE', 'default'), region)
+                --query 'reverse(sort_by(Images, &CreationDate))[0].ImageId'""" % (os.getenv('AWS_CLI_PROFILE', 'default'), region)
 
         image, err = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).communicate()
         bastion[region] = {"HVM": image.strip("\"\n")}
