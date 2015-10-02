@@ -24,7 +24,7 @@ if [ ! -f $PARAMETERS_FILE ]; then
 fi
 
 # Check if SSH is available using a nasty little python hack
-check_sshkey $PARAMETERS_FILE
+check_sshkey $PARAMETERS_FILE $DEIS_BASTION_SSH_KEY
 
 if [ -z "$1" ]; then
     STACK_NAME=deis-vpc

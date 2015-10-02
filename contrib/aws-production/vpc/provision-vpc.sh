@@ -24,7 +24,7 @@ if [ ! -f $PARAMETERS_FILE ]; then
 fi
 
 # Check if SSH is available using a nasty little python hack
-check_sshkey $PARAMETERS_FILE
+check_sshkey $PARAMETERS_FILE $DEIS_BASTION_SSH_KEY
 
 if [ -z "$1" ]; then
     STACK_NAME=deis-vpc
@@ -87,4 +87,26 @@ echo_green "\nYour Deis VPC was deployed to AWS CloudFormation as stack "$STACK_
 
 aws --output text cloudformation describe-stacks --stack-name $STACK_NAME $EXTRA_AWS_CLI_ARGS
 
-echo_green "\nGrab the Bastion Instance ID and export it to BASTION_ID for the next step"
+printf "\nInstances are available:\n"
+aws ec2 describe-instances \
+  --filters Name=tag:aws:cloudformation:stack-name,Values=$STACK_NAME Name=instance-state-name,Values=running \
+  --query "Reservations[].Instances[].[InstanceId,PublicIpAddress,InstanceType,Placement.AvailabilityZone,State.Name]" \
+  --output text \
+  $EXTRA_AWS_CLI_ARGS
+
+BASTION_ID=$(
+  aws ec2 describe-instances \
+    --max-items 1 \
+    --filters Name=tag:aws:cloudformation:stack-name,Values=$STACK_NAME Name=instance-state-name,Values=running Name=tag:Name,Values=bastion \
+    --query "Reservations[].Instances[].[InstanceId]" \
+    --output text \
+    $EXTRA_AWS_CLI_ARGS
+)
+
+# script kick off SSH agent and save in the env file for ssh
+# Allows for adding ssh keys to the ssh agent
+# This can't go into cloud-init; SSH becomes unavailable if dropped too early
+ssh_copy "$THIS_DIR/ssh_agent.sh" "~/.ssh/rc"
+
+echo_green "\nBastion Instance ID is: $BASTION_ID"
+echo_green "Grab the Bastion Instance ID and export it to BASTION_ID for the Deis Cluster setup"

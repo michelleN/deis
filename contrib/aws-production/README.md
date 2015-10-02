@@ -24,6 +24,8 @@ ssh-keygen -q -t rsa -f ~/.ssh/deis -N '' -C deis-bastion
 aws ec2 import-key-pair --key-name deis-bastion --public-key-material file://~/.ssh/deis-bastion.pub
 ```
 
+* `DEIS_BASTION_SSH_KEY` By default `~/.ssh/<keypair>` is matched and uses the keypair name put into the parameters file
+
 Or follow http://docs.deis.io/en/latest/installing_deis/aws/ for more information
 
 Now run `./provision-vpc.sh stack-name template.json` (omit arguments you do not need) and sit on your hands for a little bit.
@@ -44,7 +46,6 @@ aws ec2 import-key-pair --key-name deis --public-key-material file://~/.ssh/deis
 ```
 
 Or follow http://docs.deis.io/en/latest/installing_deis/aws/ for more information
-
 
 The Deis cluster can be launched into an existing VPC, be it the one created with the bastion setup above or one of your own making then some information bits need to be provided.
 
@@ -91,6 +92,8 @@ Now you can run
 And voila. Magic.
 
 ##### Available ENV vars to configure Deis
+
+* `DEIS_SSH_KEY` By default `~/.ssh/<keypair>` is matched and uses the keypair name put into the parameters file
 
 ###### Control Plane
 * `DEIS_ISOLATE_CONTROL_PLANE` (Creates an AutoScale Group for the Control Plane)

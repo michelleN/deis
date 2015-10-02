@@ -1,6 +1,6 @@
 [
     {
         "ParameterKey":     "KeyPair",
-        "ParameterValue":   "deis"
+        "ParameterValue":   "deis-bastion"
     }
 ]

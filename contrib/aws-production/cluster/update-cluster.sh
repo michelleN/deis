@@ -27,7 +27,7 @@ if [ ! -f $PARAMETERS_FILE ]; then
 fi
 
 # Check if SSH is available specificed in cluster.parameters.json
-check_sshkey $PARAMETERS_FILE
+check_sshkey $PARAMETERS_FILE $DEIS_SSH_KEY
 
 # Deal with inputs from the user
 if [ -z "$1" ]; then

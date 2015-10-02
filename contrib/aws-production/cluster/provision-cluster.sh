@@ -27,7 +27,11 @@ if [ ! -f $PARAMETERS_FILE ]; then
 fi
 
 # Check if SSH is available specificed in cluster.parameters.json
-check_sshkey $PARAMETERS_FILE
+if [ -z $DEIS_SSH_KEY ]; then
+  DEIS_SSH_KEY="$HOME/.ssh/$(get_sshkey $PARAMETERS_FILE)"
+fi
+
+check_sshkey $PARAMETERS_FILE $DEIS_SSH_KEY
 
 # Deal with inputs from the user
 if [ -z "$1" ]; then
@@ -147,6 +151,14 @@ if [ -n "$BASTION_ID" ]; then
     echo_green "Installing deisctl on the bastion host so the platform can be configured"
     run "curl -sSL http://deis.io/deisctl/install.sh | sh -s $DEIS_RELEASE && sudo mv deisctl /usr/local/bin/"
     echo_green "\ndeisctl has been installed and moved to /usr/local/bin/"
+    echo_green "transferring the private deis ssh key ($DEIS_SSH_KEY) to the bastion host"
+
+    sshkey=$(basename $DEIS_SSH_KEY)
+    ssh_copy $DEIS_SSH_KEY "~/.ssh/$sshkey"
+    run "chmod 0600 ~/.ssh/$sshkey"
+    run "ssh-add ~/.ssh/deis"
+
+    echo_green "key transferred"
 else
     export DEISCTL_TUNNEL=$INSTANCE
 fi
@@ -180,10 +192,11 @@ if ! run deisctl config router set proxyProtocol=1; then
     echo_red "# deisctl config router set proxyProtocol=1\n"
 fi
 
-echo_green "Your Deis cluster was deployed to AWS CloudFormation as stack "$STACK_NAME"."
-echo_green "Now run this command in your shell:"
+echo_green "\nYour Deis cluster was deployed to AWS CloudFormation as stack "$STACK_NAME"."
 if [ -n "$BASTION_ID" ]; then
     echo_green "Make sure to SSH into your bastion host first"
 fi
+
+echo_green "Now run this command in your shell:"
 echo_green "export DEISCTL_TUNNEL=$INSTANCE"
-echo_green "and continue to follow the documentation for \"Installing the Deis Platform.\""
+echo_green "\nContinue to follow the documentation for \"Installing the Deis Platform.\""

@@ -51,43 +51,31 @@ get_first_instance() {
 
     if [[ $FIRST_INSTANCE == "None" ]]; then
         # Make the varialbe empty so we don't have to compare against "None"
-        $FIRST_INSTANCE=''
+        FIRST_INSTANCE=''
         printf "$FIRST_INSTANCE"
     fi
 }
 
-# Get Bastion Host
-get_bastion_host() {
-    if [ -n $BASTION_HOST ]; then
-        printf "$BASTION_HOST"
-    fi
-
-    BASTION_HOST=$(
-      aws ec2 describe-instances \
-        --instance-ids $BASTION_ID \
-        --query 'Reservations[].Instances[0].PublicIpAddress' \
-        --output text \
-        $EXTRA_AWS_CLI_ARGS
-    )
-
-    printf "$BASTION_HOST"
-}
-
 # Run commands via the bastion host if bastion is set
 run () {
-    cmd=$@
+    # SSH into the bastion host
     if [ -n $BASTION_ID ]; then
+        # Source in SSH env vars this way so there is no need to
+        # edit sshd_config for PermitUserEnvironment
+        # Lets us load in the existing ssh-agent that's running
+        cmd="[[ -e ~/.ssh/environment ]] && source ~/.ssh/environment; $@"
         TUNNEL=''
         INSTANCE="$(get_first_instance)"
         if [ -n $INSTANCE ]; then
-            TUNNEL="export DEISCTL_TUNNEL=$INSTANCE"
+            TUNNEL="export DEISCTL_TUNNEL=$INSTANCE;"
         fi
 
-        ssh -o LogLevel=quiet \
-            -oUserKnownHostsFile=/dev/null \
-            -oStrictHostKeyChecking=no \
-            ubuntu@$(get_bastion_host) "($TUNNEL && $cmd)" >/dev/null
+        ssh -o UserKnownHostsFile=/dev/null \
+            -o StrictHostKeyChecking=no \
+            -o LogLevel=quiet \
+            ubuntu@$(get_bastion_host) "($TUNNEL $cmd)" >/dev/null
     else
-        $cmd >/dev/null
+        # Run it from the local system
+        $@ >/dev/null
     fi
 }
