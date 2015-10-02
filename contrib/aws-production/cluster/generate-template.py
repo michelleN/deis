@@ -20,6 +20,12 @@ if __name__ == '__main__':
 CURR_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
+def get_instance_sizes():
+    # Seed in the base template
+    template = json.load(open(os.path.join(CURR_DIR, 'cluster.template.json'), 'r'))
+    return template['Parameters']['InstanceType']['AllowedValues']
+
+
 class UniqueAppendAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         unique_values = [set(values)]
@@ -56,6 +62,10 @@ group.add_argument('--control-plane-instances',
 group.add_argument('--control-plane-instances-max',
                    help='How many control plane instances to scale to max',
                    type=int, metavar='<count>', default=9)
+group.add_argument('--control-plane-instance-size',
+                   help='AWS instance size, otherwise uses default in template',
+                   metavar='<instance type>',
+                   choices=get_instance_sizes())
 
 group = parser.add_argument_group('data-plane', 'Setup configuration around the Data Plane')
 group.add_argument('--isolate-data-plane',
@@ -71,6 +81,10 @@ group.add_argument('--data-plane-instances',
 group.add_argument('--data-plane-instances-max',
                    help='How many data plane instances to scale to max',
                    type=int, metavar='<count>', default=25)
+group.add_argument('--data-plane-instance-size',
+                   help='AWS instance size, otherwise uses default in template',
+                   metavar='<instance type>',
+                   choices=get_instance_sizes())
 
 group = parser.add_argument_group('router-mesh', 'Setup configuration around the Router Mesh')
 group.add_argument('--isolate-router',
@@ -89,6 +103,11 @@ group.add_argument('--router-mesh-instances-max',
                    dest="router_plane_instances_max",
                    help='How many router mesh instances to scale to max',
                    type=int, metavar='<count>', default=9)
+group.add_argument('--router-mesh-instance-size',
+                   dest="router_plane_instance_size",
+                   help='AWS instance size, otherwise uses default in template',
+                   metavar='<instance type>',
+                   choices=get_instance_sizes())
 
 group = parser.add_argument_group('etcd', 'Setup configuration around the etcd cluster')
 group.add_argument('--isolate-etcd',
@@ -102,6 +121,11 @@ group.add_argument('--etcd-instances-max',
                    dest="etcd_plane_instances_max",
                    help='How many etcd mesh instances to scale to max',
                    type=int, metavar='<count>', default=9)
+group.add_argument('--etcd-instance-size',
+                   dest="etcd_plane_instance_size",
+                   help='AWS instance size, otherwise uses default in template',
+                   metavar='<instance type>',
+                   choices=get_instance_sizes())
 
 group = parser.add_argument_group('other', 'Setup configuration around the planes that are not isolated out specifically')
 group.add_argument('--other-plane-instances',
@@ -110,6 +134,10 @@ group.add_argument('--other-plane-instances',
 group.add_argument('--other-plane-instances-max',
                    help='How many instances to scale to max',
                    type=int, metavar='<count>', default=9)
+group.add_argument('--other-plane-instance-size',
+                   help='AWS instance size, otherwise uses default in template',
+                   metavar='<instance type>',
+                   choices=get_instance_sizes())
 
 args = vars(parser.parse_args())
 
@@ -292,6 +320,10 @@ def add_plane(tp, template, worker=False, planes=[]):
     # Update subnets and zones
     template['Resources'][tp + 'PlaneAutoScale']['Properties']['AvailabilityZones'] = vpc.zones
     template['Resources'][tp + 'PlaneAutoScale']['Properties']['VPCZoneIdentifier'] = vpc.private_subnets
+
+    # Instance size
+    if args[tp.lower() + '_plane_instance_size']:
+        template['Resources'][tp + 'PlaneLaunchConfig']['Properties']['InstanceType'] = args[tp.lower() + '_plane_instance_size']
 
     if not elb_allocated and 'router' in planes:
         # Whatever plane serves the traffic needs this

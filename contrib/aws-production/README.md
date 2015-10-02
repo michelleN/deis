@@ -99,6 +99,7 @@ And voila. Magic.
 * `DEIS_ISOLATE_CONTROL_PLANE` (Creates an AutoScale Group for the Control Plane)
 * `DEIS_NUM_CONTROL_PLANE_INSTANCES` (Minimum servers in the AutoScale group)
 * `DEIS_NUM_CONTROL_PLANE_INSTANCES_MAX` (Max servers in the AutoScale group)
+* `DEIS_CONTROL_PLANE_INSTANCE_SIZE` (AWS instance size, otherwise default)
 * `DEIS_COLOCATE_CONTROL_PLANE` (Colocates other planes on the same ASG.
 	* Available options are router and data. Has to be passed in with a space separated. Example: `export DEIS_ISOLATE_CONTROL_PLANE=router data`
 
@@ -106,6 +107,7 @@ And voila. Magic.
 * `DEIS_ISOLATE_DATA_PLANE`
 * `DEIS_NUM_DATA_PLANE_INSTANCES` (Minimum servers in the AutoScale group)
 * `DEIS_NUM_DATA_PLANE_INSTANCES_MAX` (Max servers in the AutoScale group)
+* `DEIS_DATA_PLANE_INSTANCE_SIZE` (AWS instance size, otherwise default)
 * `DEIS_COLOCATE_DATA_PLANE` (Colocates other planes on the same ASG.
 	* Available options are control and router. Has to be passed in with a space separated. Example: `export DEIS_ISOLATE_DATA_PLANE=control router`
 
@@ -113,6 +115,7 @@ And voila. Magic.
 * `DEIS_ISOLATE_ROUTER_MESH`
 * `DEIS_NUM_ROUTER_MESH_INSTANCES` (Minimum servers in the AutoScale group)
 * `DEIS_NUM_ROUTER_MESH_INSTANCES_MAX` (Max servers in the AutoScale group)
+* `DEIS_ROUTER_MESH_INSTANCE_SIZE` (AWS instance size, otherwise default)
 * `DEIS_COLOCATE_ROUTER_MESH` (Colocates other planes on the same ASG.
 	* Available options are control and data. Has to be passed in with a space separated. Example: `export DEIS_ISOLATE_CONTROL_PLANE=control data`
 
@@ -123,6 +126,7 @@ etcd is on the Control Plane if it is not configured to be isolated
 * `DEIS_ISOLATE_ETCD` (Creats an AutoScale Group for etcd)
 * `DEIS_NUM_ETCD_INSTANCES` (Minimum servers in the AutoScale group)
 * `DEIS_NUM_ETCD_INSTANCES_MAX` (Max servers in the AutoScale group)
+* `DEIS_ETCD_INSTANCE_SIZE` (AWS instance size, otherwise default)
 
 ###### Other Plane
 
@@ -130,6 +134,7 @@ Items that are not isolated **or** colocated on other servers goes to the **Othe
 
 * `DEIS_NUM_INSTANCES` (Minimum servers in the AutoScale group)
 * `DEIS_NUM_INSTANCES_MAX` (Max servers in the AutoScale group)
+* `DEIS_INSTANCE_SIZE` (AWS instance size, otherwise default)
 
 #### Updating Deis Cluster
 

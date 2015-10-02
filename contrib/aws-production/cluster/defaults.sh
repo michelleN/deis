@@ -45,6 +45,9 @@ if [ -n "$DEIS_ISOLATE_CONTROL_PLANE" ]; then
   GEN_ARGS+=" --isolate-control-plane"
   GEN_ARGS+=" --control-plane-instances $DEIS_NUM_CONTROL_PLANE_INSTANCES"
   GEN_ARGS+=" --control-plane-instances-max $DEIS_NUM_CONTROL_PLANE_INSTANCES_MAX"
+  if [ -n "$DEIS_CONTROL_PLANE_INSTANCE_SIZE" ]; then
+    GEN_ARGS+=" --control-plane-instance-size $DEIS_CONTROL_PLANE_INSTANCE_SIZE"
+  fi
 
   let DEIS_NUM_TOTAL_INSTANCES=DEIS_NUM_TOTAL_INSTANCES+DEIS_NUM_CONTROL_PLANE_INSTANCES
 
@@ -76,6 +79,9 @@ if [ -n "$DEIS_ISOLATE_DATA_PLANE" ]; then
   GEN_ARGS+=" --isolate-data-plane"
   GEN_ARGS+=" --data-plane-instances $DEIS_NUM_DATA_PLANE_INSTANCES"
   GEN_ARGS+=" --data-plane-instances-max $DEIS_NUM_DATA_PLANE_INSTANCES_MAX"
+  if [ -n "$DEIS_DATA_PLANE_INSTANCE_SIZE" ]; then
+    GEN_ARGS+=" --data-plane-instance-size $DEIS_DATA_PLANE_INSTANCE_SIZE"
+  fi
 
   let DEIS_NUM_TOTAL_INSTANCES=DEIS_NUM_TOTAL_INSTANCES+DEIS_NUM_DATA_PLANE_INSTANCES
 
@@ -107,6 +113,9 @@ if [ -n "$DEIS_ISOLATE_ROUTER_MESH" ]; then
   GEN_ARGS+=" --isolate-router"
   GEN_ARGS+=" --router-mesh-instances $DEIS_NUM_ROUTER_MESH_INSTANCES"
   GEN_ARGS+=" --router-mesh-instances-max $DEIS_NUM_ROUTER_MESH_INSTANCES_MAX"
+  if [ -n "$DEIS_ROUTER_MESH_INSTANCE_SIZE" ]; then
+    GEN_ARGS+=" --router-mesh-instance-size $DEIS_ROUTER_MESH_INSTANCE_SIZE"
+  fi
 
   let DEIS_NUM_TOTAL_INSTANCES=DEIS_NUM_TOTAL_INSTANCES+DEIS_NUM_ROUTER_MESH_INSTANCES
 
@@ -138,6 +147,10 @@ if [ -n "$DEIS_ISOLATE_ETCD" ]; then
   GEN_ARGS+=" --isolate-etcd"
   GEN_ARGS+=" --etcd-instances $DEIS_NUM_ETCD_INSTANCES"
   GEN_ARGS+=" --etcd-instances-max $DEIS_NUM_ETCD_INSTANCES_MAX"
+  if [ -n "$DEIS_ETCD_INSTANCE_SIZE" ]; then
+    GEN_ARGS+=" --etcd-instance-size $DEIS_ETCD_INSTANCE_SIZE"
+  fi
+
   let DEIS_NUM_TOTAL_INSTANCES=DEIS_NUM_TOTAL_INSTANCES+DEIS_NUM_ETCD_INSTANCES
   planes+=(etcd)
 else
@@ -155,6 +168,9 @@ fi
 
 GEN_ARGS+=" --other-plane-instances $DEIS_NUM_INSTANCES"
 GEN_ARGS+=" --other-plane-instances-max $DEIS_NUM_INSTANCES_MAX"
+if [ -n "$DEIS_INSTANCE_SIZE" ]; then
+  GEN_ARGS+=" --other-plane-instance-size $DEIS_INSTANCE_SIZE"
+fi
 
 # Account for instances that are in combonation plane
 if [ "${#available_planes[@]}" != 0 ]; then
