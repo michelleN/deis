@@ -109,4 +109,5 @@ BASTION_ID=$(
 ssh_copy "$THIS_DIR/ssh_agent.sh" "~/.ssh/rc"
 
 echo_green "\nBastion Instance ID is: $BASTION_ID"
-echo_green "Grab the Bastion Instance ID and export it to BASTION_ID for the Deis Cluster setup"
+echo_green "Run the following before moving on to the Deis Cluster setup"
+echo_green "export BASTION_ID=$BASTION_ID"
