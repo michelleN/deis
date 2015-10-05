@@ -16,6 +16,16 @@ source $PARENT_DIR/helpers.sh
 # check for AWS API tools in $PATH
 check_aws
 
+# Check if region being used is supported
+region=$(aws configure get region $EXTRA_AWS_CLI_ARGS)
+regions=(us-west-2 us-east-1 eu-west-1)
+
+if [[ " ${regions[*]} " != *" $region "* ]]; then
+    echo_red "$region is not supported as it has too few Availability Zones to safely operate Deis"
+    echo_red "The following are the supported regions: ${regions[*]}"
+    exit 1
+fi
+
 # Figure out if there is a cluster param file
 PARAMETERS_FILE=$THIS_DIR/vpc.parameters.json
 if [ ! -f $PARAMETERS_FILE ]; then

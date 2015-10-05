@@ -13,8 +13,14 @@ CURR_DIR = os.path.dirname(os.path.realpath(__file__))
 template = json.load(open(os.path.join(CURR_DIR, 'vpc.template.json'), 'r'))
 
 if args['include_private_subnets']:
-    # Get mappings from separate files
+    cmd = 'aws configure get region --profile %s' % os.getenv('AWS_CLI_PROFILE', 'default')
+    region, err = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).communicate()
+
     regions = ['us-west-2', 'us-east-1', 'eu-west-1']
+    if region not in regions:
+        raise Exception("%s is not a supported region. Pick one of the following: %s" % (region, ', '.join(regions)))
+
+    # Get mappings from separate files
     nat = {}
     bastion = {}
     for region in regions:
