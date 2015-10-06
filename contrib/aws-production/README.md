@@ -1,21 +1,21 @@
 ### AWS Production Configuration
 
-This is a set of opinionated scripts on how to run a good production deployment of Deis on AWS, using Bastion Hosts, isolating deis itself from the internet and many other little goodies.
+This is a set of opinionated scripts on how to run a good production deployment of Deis on AWS, use Bastion Hosts, and isolate deis itself from the internet and many other little goodies.
 
-There are 2 different set of directories involved with separate scripts
+There are 2 directories (cluster & vpc) involved in the setup process that include independent scripts:
 
-* `cluster` - Sets up Deis and all of its bells and whistles in a private network setup
-* `vpc` - Sets up a Bastion and NAT hosts so *operators* can interface with the Deis installation from the outside world
+* `cluster/` - Sets up Deis and all of its bells and whistles in a private network setup
+* `vpc/` - Sets up a Bastion and NAT hosts so *operators* can interface with the Deis installation from the outside world
 
-If you do not want to use your default `aws` cli profile for this setup then set `AWS_CLI_PROFILE` to the appropriate profile
+Note: If you do not want to use your default `aws` cli profile for this setup then set `AWS_CLI_PROFILE` to the appropriate profile
 
-#### Bastion Cluster
+#### Part I: Setting up the Bastion Cluster
 
-The Bastion cluster is all about isolating Deis from the internet and creating a VPC that has the appropriate network subnets to accomplish that.
+Using a Bastion cluster, you can proxy requests from the internet to your Deis cluster and create a VPC that has the appropriate network subnets to accomplish that.
 
 This cluster consists of a Bastion host running Ubuntu 14.04 and a NAT host running Amazon Linux NAT setup.
 
-The following steps should be done in the `vpc` directory:
+The following steps should be done inside the `vpc` directory:
 
 Copy `vpc.parameters.json.example` to `vpc.parameters.json` and change any parameters needed. `KeyPair` is essential as it tells CloudFormation what AWS SSH Key to use but can also be used to change the instance sizes
 
@@ -39,7 +39,7 @@ Follow the CLI instructions for any additional actions that need to be done.
 
 *NOTE:* Currently this does not provision into an existing VPC
 
-#### Provisioning Deis Cluster
+#### Part II: Provisioning Deis Cluster
 
 With an existing VPC setup (using the steps above or done yourself) in place now it is time to setup Deis.
 
